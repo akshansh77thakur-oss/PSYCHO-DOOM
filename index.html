@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Psychology Strategy Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; padding: 2rem; }
+        .container { max-width: 700px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; }
+        h2 { margin-bottom: 1.5rem; color: #1a1a1a; }
+        .scores { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 2rem; }
+        .score-card { background: #f8f9fa; padding: 1.2rem; border-radius: 8px; border: 1px solid #e9ecef; text-align: center; }
+        .score-label { font-size: 12px; color: #6c757d; margin-bottom: 8px; font-weight: 500; }
+        .score-number { font-size: 28px; font-weight: 700; color: #185FA5; }
+        .buttons { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin: 1.5rem 0; }
+        button { padding: 10px; background: white; border: 1.5px solid #ddd; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 500; }
+        button:hover { background: #f0f0f0; }
+        .targets { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin: 1.5rem 0; }
+        .submit-btn { width: 100%; padding: 14px; background: #185FA5; color: white; border: none; font-size: 14px; font-weight: 600; margin: 1.5rem 0; }
+        .submit-btn:hover { background: #0C447C; }
+        .info { background: #f8f9fa; padding: 1.5rem; border-radius: 8px; border: 1px solid #e9ecef; margin-top: 2rem; }
+        .loading { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Round <span id="round">1</span></h2>
+        
+        <div class="scores">
+            <div class="score-card">
+                <div class="score-label">Your Points</div>
+                <div class="score-number" id="playerScore">0</div>
+            </div>
+            <div class="score-card">
+                <div class="score-label">Akira</div>
+                <div class="score-number" style="color: #534AB7;" id="akiraScore">0</div>
+            </div>
+            <div class="score-card">
+                <div class="score-label">Sophia</div>
+                <div class="score-number" style="color: #0F6E56;" id="sophiaScore">0</div>
+            </div>
+            <div class="score-card">
+                <div class="score-label">Marcus</div>
+                <div class="score-number" style="color: #993C1D;" id="marcusScore">0</div>
+            </div>
+        </div>
+
+        <div class="score-card" style="margin-bottom: 1.5rem;">
+            <div class="score-label">Natsuki</div>
+            <div class="score-number" style="color: #185FA5;" id="natsukiScore">0</div>
+        </div>
+
+        <h3 style="margin-bottom: 1rem;">Choose Your Action</h3>
+        <div class="buttons" id="actionButtons"></div>
+
+        <h3 style="margin-bottom: 1rem;">Select Target</h3>
+        <div class="targets" id="targetButtons"></div>
+
+        <button class="submit-btn" id="submitBtn" onclick="submitRound()">Submit Round</button>
+
+        <div class="info">
+            <h3 style="margin-bottom: 1rem; font-size: 14px;">Bot Personalities</h3>
+            <div style="font-size: 12px; color: #495057; line-height: 1.8;">
+                <div><span style="color: #534AB7; font-weight: 600;">Akira:</span> Ambitious strategist</div>
+                <div><span style="color: #0F6E56; font-weight: 600;">Sophia:</span> Intelligent manipulator</div>
+                <div><span style="color: #993C1D; font-weight: 600;">Marcus:</span> Charismatic diplomat</div>
+                <div><span style="color: #185FA5; font-weight: 600;">Natsuki:</span> Unpredictable wildcard</div>
+            </div>
+        </div>
+
+        <div id="status" style="margin-top: 1rem; text-align: center; color: #666;"></div>
+    </div>
+
+    <script>
+        let gameState = {
+            round: 1,
+            playerScore: 0,
+            playerAction: null,
+            playerTarget: null,
+            bots: {
+                akira: { score: 0, color: '#534AB7' },
+                sophia: { score: 0, color: '#0F6E56' },
+                marcus: { score: 0, color: '#993C1D' },
+                natsuki: { score: 0, color: '#185FA5' }
+            }
+        };
+
+        const actions = [
+            { id: 'charm', label: '💬 Charm' },
+            { id: 'expose', label: '🔍 Expose' },
+            { id: 'ally', label: '🤝 Ally' },
+            { id: 'sabotage', label: '⚡ Sabotage' },
+            { id: 'staylow', label: '🤐 Stay Low' }
+        ];
+
+        const bots = ['akira', 'sophia', 'marcus', 'natsuki'];
+
+        function renderUI() {
+            const actionButtons = document.getElementById('actionButtons');
+            actionButtons.innerHTML = actions.map(a => 
+                `<button onclick="selectAction('${a.id}')" style="${gameState.playerAction === a.id ? 'border-color: #185FA5; background: #e6f1fb;' : ''}">${a.label}</button>`
+            ).join('');
+
+            const targetButtons = document.getElementById('targetButtons');
+            if (gameState.playerAction && gameState.playerAction !== 'staylow') {
+                targetButtons.innerHTML = bots.map(b => 
+                    `<button onclick="selectTarget('${b}')" style="${gameState.playerTarget === b ? 'border-color: #185FA5; background: #e6f1fb;' : ''}">${b.charAt(0).toUpperCase() + b.slice(1)}</button>`
+                ).join('');
+            } else {
+                targetButtons.innerHTML = '';
+            }
+
+            document.getElementById('round').textContent = gameState.round;
+            document.getElementById('playerScore').textContent = gameState.playerScore;
+            document.getElementById('akiraScore').textContent = gameState.bots.akira.score;
+            document.getElementById('sophiaScore').textContent = gameState.bots.sophia.score;
+            document.getElementById('marcusScore').textContent = gameState.bots.marcus.score;
+            document.getElementById('natsukiScore').textContent = gameState.bots.natsuki.score;
+        }
+
+        function selectAction(action) {
+            gameState.playerAction = action;
+            if (action === 'staylow') gameState.playerTarget = null;
+            renderUI();
+        }
+
+        function selectTarget(target) {
+            gameState.playerTarget = target;
+            renderUI();
+        }
+
+        async function submitRound() {
+            if (!gameState.playerAction || (gameState.playerAction !== 'staylow' && !gameState.playerTarget)) {
+                alert('Select action and target!');
+                return;
+            }
+
+            document.getElementById('status').textContent = 'Processing round...';
+            document.getElementById('submitBtn').disabled = true;
+
+            try {
+                const response = await fetch('https://api.anthropic.com/v1/messages', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'claude-sonnet-4-20250514',
+                        max_tokens: 500,
+                        messages: [{
+                            role: 'user',
+                            content: `Quick bot moves for psychology game. Player did: ${gameState.playerAction} to ${gameState.playerTarget || 'self'}. Return ONLY JSON: {"akira":"charm|expose|ally|sabotage|staylow","sophia":"...","marcus":"...","natsuki":"..."}`
+                        }]
+                    })
+                });
+
+                const data = await response.json();
+                const text = data.content[0].text.trim();
+                const moves = JSON.parse(text);
+
+                // Award points
+                if (gameState.playerAction === 'expose') gameState.playerScore += 5;
+                else if (gameState.playerAction === 'sabotage') gameState.playerScore += 4;
+                else if (gameState.playerAction === 'charm') gameState.playerScore += 3;
+                else gameState.playerScore += 1;
+
+                bots.forEach(bot => {
+                    if (moves[bot] === 'expose' || moves[bot] === 'sabotage') {
+                        gameState.bots[bot].score += 3;
+                    } else if (moves[bot] === 'staylow') {
+                        gameState.bots[bot].score += 1;
+                    } else {
+                        gameState.bots[bot].score += 2;
+                    }
+                });
+
+                document.getElementById('status').textContent = `✓ Round complete! Moving to next...`;
+                
+                setTimeout(() => {
+                    if (gameState.round >= 5) {
+                        alert(`Game Over!\n\nYour Score: ${gameState.playerScore}\nAkira: ${gameState.bots.akira.score}\nSophia: ${gameState.bots.sophia.score}\nMarcus: ${gameState.bots.marcus.score}\nNatsuki: ${gameState.bots.natsuki.score}`);
+                        location.reload();
+                    } else {
+                        gameState.round++;
+                        gameState.playerAction = null;
+                        gameState.playerTarget = null;
+                        document.getElementById('status').textContent = '';
+                        document.getElementById('submitBtn').disabled = false;
+                        renderUI();
+                    }
+                }, 2000);
+
+            } catch (error) {
+                document.getElementById('status').textContent = `Error: ${error.message}`;
+                document.getElementById('submitBtn').disabled = false;
+            }
+        }
+
+        renderUI();
+    </script>
+</body>
+</html>
